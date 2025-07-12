@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const { Configuration, OpenAIApi } = require("openai");
+const OpenAI = require("openai");
 
 require("dotenv").config();
 
@@ -11,28 +11,29 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// GPT-4 Chatbot Route
-const openai = new OpenAIApi(new Configuration({
+// ✅ Initialize OpenAI (new format)
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
-}));
+});
 
+// 🔹 Chatbot route
 app.post("/chat", async (req, res) => {
   try {
     const { message } = req.body;
 
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [{ role: "user", content: message }]
     });
 
-    res.json({ reply: completion.data.choices[0].message.content });
+    res.json({ reply: completion.choices[0].message.content });
   } catch (err) {
     console.error("Chatbot Error:", err.message);
     res.status(500).json({ error: "Failed to connect to GPT-4" });
   }
 });
 
-// Frequency Route
+// 🔹 Frequency route (static list)
 app.get("/frequencies", (req, res) => {
   const frequencies = [
     { title: "528 Hz – Love & DNA Repair", url: "https://www.youtube.com/watch?v=1Z-3JgnRjBc" },
@@ -48,6 +49,8 @@ app.get("/frequencies", (req, res) => {
   res.json(frequencies);
 });
 
+// 🔹 Start server
 app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
+  console.log(`✅ Backend running on port ${PORT}`);
 });
+
