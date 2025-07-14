@@ -1,56 +1,50 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const OpenAI = require("openai");
-
+const { Configuration, OpenAIApi } = require("openai");
 require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ Initialize OpenAI (new format)
-const openai = new OpenAI({
+// ✅ Load OpenAI API key from environment
+const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
 });
+const openai = new OpenAIApi(configuration);
 
-// 🔹 Chatbot route
+// ✅ /chat endpoint
 app.post("/chat", async (req, res) => {
-  try {
-    const { message } = req.body;
+  const { message } = req.body;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: message }]
+  if (!message || typeof message !== "string") {
+    return res.status(400).json({ reply: "Invalid message input." });
+  }
+
+  try {
+    const response = await openai.createChatCompletion({
+      model: "gpt-4", // Use "gpt-3.5-turbo" if you want faster/cheaper
+      messages: [
+        { role: "system", content: "You are a helpful and fast AI assistant. Reply concisely." },
+        { role: "user", content: message }
+      ],
+      temperature: 0.7,
+      max_tokens: 300
     });
 
-    res.json({ reply: completion.choices[0].message.content });
-  } catch (err) {
-    console.error("Chatbot Error:", err.message);
-    res.status(500).json({ error: "Failed to connect to GPT-4" });
+    const reply = response.data.choices[0].message.content.trim();
+    res.json({ reply });
+  } catch (error) {
+    console.error("OpenAI error:", error.message);
+    res.status(500).json({
+      reply: "Server error or OpenAI failed. Try again shortly."
+    });
   }
 });
 
-// 🔹 Frequency route (static list)
-app.get("/frequencies", (req, res) => {
-  const frequencies = [
-    { title: "528 Hz – Love & DNA Repair", url: "https://www.youtube.com/watch?v=1Z-3JgnRjBc" },
-    { title: "396 Hz – Liberate Fear & Guilt", url: "https://www.youtube.com/watch?v=0-Vk00TVzAU" },
-    { title: "417 Hz – Undo Situations & Change", url: "https://www.youtube.com/watch?v=q7M5wVgOxs8" },
-    { title: "432 Hz – Natural Tuning", url: "https://www.youtube.com/watch?v=7Wq1PbT5TDs" },
-    { title: "639 Hz – Harmonize Relationships", url: "https://www.youtube.com/watch?v=VjVJeTXYpJk" },
-    { title: "741 Hz – Awakening Intuition", url: "https://www.youtube.com/watch?v=-DdnKVQgr0k" },
-    { title: "852 Hz – Return to Spiritual Order", url: "https://www.youtube.com/watch?v=Y5EgvA2x8rk" },
-    { title: "963 Hz – Pineal Gland Activation", url: "https://www.youtube.com/watch?v=qqMKv_Z3tZI" }
-  ];
-
-  res.json(frequencies);
-});
-
-// 🔹 Start server
+// ✅ Launch server
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`✅ Backend running on port ${PORT}`);
+  console.log(`✅ Vibrenza backend running on port ${PORT}`);
 });
-
